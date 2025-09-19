@@ -1,12 +1,12 @@
 package fr.usmb.tpinfo901;
 
 public class Process implements Runnable {
-    private Thread thread;
+    private final Thread thread;
     private boolean alive;
     private boolean dead;
-    private Com com;
+    private final Com com;
     private static int nbProcess = 0;
-    private int id = Process.nbProcess++;
+    private final int id = Process.nbProcess++;
 
     public Process(String name, int maxNbProcess) {
         this.com = new Com(id, maxNbProcess);
@@ -19,7 +19,7 @@ public class Process implements Runnable {
 
     public void run() {
         int loop = 0;
-        Message msg = null;
+        Message msg;
 
         System.out.println(Thread.currentThread().getName() + " id :" + this.id);
 

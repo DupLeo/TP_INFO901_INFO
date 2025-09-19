@@ -1,9 +1,9 @@
 package fr.usmb.tpinfo901;
 
 abstract public class Message {
-    private int clock;
-    private Object payload;   // objet générique
-    private int sender;       // identifiant du processus
+    private final int clock;
+    private final Object payload;   // objet générique
+    private final int sender;       // identifiant du processus
 
     public Message(int clock, int sender, Object payload) {
         this.clock = clock;
