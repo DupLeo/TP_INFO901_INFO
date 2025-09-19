@@ -40,15 +40,17 @@ public class Com {
     @Subscribe
     public void onMessageTo(MessageTo m) {
         if (m.getDest() == this.id) {
-            mailbox.addMessage(m);
-            clock = Math.max(clock, m.getClock()) + 1;
-            System.out.println("P" + id + " a reçu de P" + m.getSender() + " : " + m.getPayload() + " [clock=" + clock + "]");
-
-            if (!(m.getPayload() instanceof String && m.getPayload().equals("ACK"))) {
-                sendTo("ACK", m.getSender());
-            }
+            receive(m);
         }
     }
+
+    @Subscribe
+    public void onACKMessageTo(ACKMessage m) {
+        if (m.getDest() == this.id) {
+            receiveACK(m);
+        }
+    }
+
     // --- Gestion du jeton ---
     @Subscribe
     public void onToken(TokenMessage m) {
@@ -67,13 +69,48 @@ public class Com {
         }
     }
 
+    public void receive(MessageTo m) {
+        mailbox.addMessage(m);
+
+        clock = Math.max(clock, m.getClock()) + 1;
+
+        System.out.println("P" + id + " a reçu de P" + m.getSender()
+                + " : " + m.getPayload() + " [clock=" + clock + "]");
+
+        sendACK(m.getDest(), m.getSender());
+    }
+
+
+    public void receiveFromSync(Object o, int from) {
+        boolean received = false;
+        while (!received) {
+            Message msg = mailbox.getMsg();
+            if (msg.getSender() == from && msg.getPayload().equals(o)) {
+                received = true;
+                sendACK(from, msg.getSender());
+            } else {
+                mailbox.addMessage(msg);
+            }
+        }
+    }
+
+    private void receiveACK(ACKMessage m) {
+        mailbox.addMessage(m);
+    }
+
     // Envoi simple (async)
     public void sendTo(Object o, int to) {
-        clock++; // incrémente avant envoi
+        clock++;
         System.out.println("P" + id + " envoie à P" + to + " : " + o + " [clock=" + clock + "]");
         MessageTo m = new MessageTo(clock, id, to, o);
         bus.postEvent(m);
     }
+
+    public void sendACK(int from, int to){
+        ACKMessage m = new ACKMessage(from,to);
+        bus.postEvent(m);
+    }
+
 
     // Envoi bloquant (sync)
     public void sendToSync(Object o, int to) {
@@ -85,10 +122,8 @@ public class Com {
         boolean ackReceived = false;
         while (!ackReceived) {
             Message reply = mailbox.getMsg();
-            clock = Math.max(clock, reply.getClock()) + 1;
 
-            if (reply.getSender() == to && "ACK".equals(reply.getPayload())) {
-                System.out.println("P" + id + " a reçu ACK de P" + to + " [clock=" + clock + "]");
+            if (reply.getSender() == to && reply instanceof ACKMessage) {
                 ackReceived = true;
             } else {
                 mailbox.addMessage(reply);
@@ -106,7 +141,7 @@ public class Com {
     }
 
     public void releaseSC() {
-        lockSC.release();                  // sortie section critique
+        lockSC.release();
     }
 
     // Synchronisation de tous les processus
@@ -120,19 +155,6 @@ public class Com {
         BroadcastMessage m = new BroadcastMessage(++clock, id, o);
         System.out.println("P" + id + " broadcast : " + o);
         bus.postEvent(m);
-    }
-
-    public void receiveFromSync(Object o, int from) {
-        boolean received = false;
-        while (!received) {
-            Message msg = mailbox.getMsg();
-            if (msg.getSender() == from && msg.getPayload().equals(o)) {
-                received = true;
-                sendTo("ACK", from); // confirmer réception
-            } else {
-                mailbox.addMessage(msg);
-            }
-        }
     }
 
 
@@ -149,7 +171,7 @@ public class Com {
             int ackCount = 0;
             while (ackCount < nbProcess - 1) {
                 Message msg = mailbox.getMsg();
-                if ("ACK".equals(msg.getPayload())) {
+                if (msg instanceof ACKMessage) {
                     ackCount++;
                 } else {
                     mailbox.addMessage(msg); // remettre les messages non-ACK
@@ -162,7 +184,7 @@ public class Com {
                 Message msg = mailbox.getMsg();
                 if (msg.getSender() == from && msg.getPayload().equals(o)) {
                     received = true;
-                    sendTo("ACK", from); // renvoyer un ACK
+                    sendACK(msg.getSender(),from );
                 } else {
                     mailbox.addMessage(msg); // remettre les autres messages
                 }
