@@ -8,12 +8,13 @@ public class Launcher{
 
 		ArrayList<Process> processes = new ArrayList<Process>();
 
-		for(int i=0; i<Process.maxNbProcess; i++) {
-			processes.add(new Process("P"+i));
+		int maxNbProcess = 4;
+
+		for(int i=0; i<maxNbProcess; i++) {
+			processes.add(new Process("P"+i, maxNbProcess));
 		}
 
-		int last = Process.maxNbProcess - 1;
-		TokenMessage initial = new TokenMessage(0, last, 0);
+		TokenMessage initial = new TokenMessage(0, 1); // P0 a le jeton, envoie au P1 après libération
 		EventBusService.getInstance().postEvent(initial);
 
 		try{
@@ -22,7 +23,7 @@ public class Launcher{
 			e.printStackTrace();
 		}
 
-		for(int i=0; i<Process.maxNbProcess; i++) {
+		for(int i=0; i<maxNbProcess; i++) {
 			processes.get(i).stop();
 		}
 	}

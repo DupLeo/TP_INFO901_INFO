@@ -1,20 +1,18 @@
 package fr.usmb.tpinfo901;
 
 public class TokenMessage extends Message {
-    private int to;    // destinataire
-    private int from;  // expéditeur
+    private int dest;
 
-    public TokenMessage(int clock, int from, int to) {
-        super(clock, "TOKEN");
-        this.to = to;
-        this.from = from;
+    public TokenMessage(int sender, int dest) {
+        super(-1, sender, "TOKEN"); // horloge spéciale (-1) + payload par défaut
+        this.dest = dest;
     }
 
-    public int getTo() {
-        return to;
+    public int getDest() {
+        return dest;
     }
 
-    public int getFrom() {
-        return from;
-    }
-}
+    @Override
+    public String toString() {
+        return "TokenMessage{from=P" + getSender() + ", to=P" + dest + "}";
+    }}
